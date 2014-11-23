@@ -1,0 +1,74 @@
+---
+title: "Statistical Inference assignment - part2"
+output: word_document
+date: "Saturday, November 22, 2014"
+---
+#### Subject: Evaluate the "ToothGrowth" Dataset
+To prepare for the analysis, the following library and packages are load to RStudio
+ggplot2, reshape2, datasets.
+
+```{r, results='hide', echo=FALSE}
+library(ggplot2)
+library(reshape2)
+library(datasets)
+data(ToothGrowth)
+````
+#### 1. load 'ToothGrowth' Dataset
+```{r, echo=FALSE}
+summary(ToothGrowth)
+table(ToothGrowth$supp, ToothGrowth$dose)
+````
+The dataset has 3 variables of 60 observations.  The response output - tooth's length(len) versus two types deliver methods (the orange juice/ascorbic acid) and three levels of doses(0.5, 1, 2) test among 10 guinea pigs.
+
+The question is, do either the delivery method or the dose size significantly impact the toothgrowth ? A box plot by dose level and delivery methods can tell the story.
+
+#### 2. Provide a basic summary of the data.
+A good way summarize the data is a clustered boxplot.
+
+```{r fig.height = 4, fig.width = 8}
+ggplot(ToothGrowth, aes(x = factor(dose), y = len, fill = supp)) +
+    xlab("Dose (mg)") +
+    ylab("Tooth length") +
+    scale_fill_discrete(name="Delivery method",
+                         breaks=c("OJ", "VC"),
+                         labels=c("Orange juice", "Ascorbic acid")) + geom_boxplot()
+```
+Based on the box plot above, it seems the higher doses has higher impact on the toothgrowth and the Orange Juice has higher impact at 0.5 and 1.0 mg level compare to Ascorbic acid, but the impact is about the same at 2.0 mg level. 
+
+#### 3. Two Factor ANOVA and confidence interval evaluation
+
+In the case of ToothGrowth data, it has two factors with 6(2x3) combinations of treatments for each of the subject.  In stead of evaluating each factor at time. ANOVA test is better method.
+
+```{r, echo=FALSE}
+library(plyr)
+
+data(ToothGrowth)
+attach(ToothGrowth)
+dose<- as.numeric(as.character(dose))
+dose <- factor(dose)
+supp <- factor(supp)
+fit2 <- aov(len ~ dose*supp, data = ToothGrowth)
+summary(fit2)
+```
+The situation is similar for the orange juice case with the difference that the confidence intervalls for the doses 1mg and 2mg overlap. Lets perform an explicit hypothesis test for this doses:
+
+
+Now we should take a look on the differences between the delivery methods for each dose:
+```{r, echo=FALSE}
+ddply(ToothGrowth,dose~supp,function(x) c(mean=mean(x$len),confidence.intervall=t.test(x$len)$conf.int))
+```
+We see that the confidence intervalls are pairwise disjoint for the delivery methods, so that we can conclude with high confidence that the mean of the tooth growth is higher for orange juice for doses of 0.5mg and 1.0mg. But we can see that the intervalls for the 2.0mg doses overlap. Lets do a t.test to decide if the means are different:
+
+
+#### 4. What is your conclusion
+
+Based on the p-value, we can accept that both dose and deliver mehtod have significan impact to the toothgrowth. There is very litte interaction between the level of dose and deliver method. It can be possiblly ignored at high level dose.
+
+```{r, echo=FALSE,fig.heigh = 4, fig.width= 8}
+interaction.plot(dose, supp, len, type="b", col=c(1:3),
+                 leg.bty="o", leg.bg="beige", lwd=2, pch=c(18,24,22),
+                 xlab="Supply of Dosege",
+                 ylab="the length of tooth",
+                 main="Interaction Plot")
+````
+
